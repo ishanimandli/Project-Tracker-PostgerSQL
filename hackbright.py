@@ -70,7 +70,8 @@ def get_project_by_title(title):
 
     row = cursor.fetchone()
 
-    print(f"Project name: {row[0]} \n Description: {row[1]} \n Maximum grade: {row[2]}")
+    # print(f"Project name: {row[0]} \n Description: {row[1]} \n Maximum grade: {row[2]}")
+    return row
 
 def get_grade_by_github_title(github, title):
     """Print grade student received for a project."""
@@ -82,14 +83,47 @@ def get_grade_by_github_title(github, title):
     """
 
     cursor = db.session.execute(QUERY, {'student_github':github, 'project_title':title})
-
     row = cursor.fetchone()
-    print(f"Grades is {row[0]} for {title}")
+
+    #student's grade does NOT exist
+    if row is None:
+        print("This student does not have a grade yet. Please insert a grade using the 'grade' command.")
+    else:
+        #student's grade exists!
+        print(f"Grades is {row[0]} for {title}")
+
 
 
 def assign_grade(github, title, grade):
     """Assign a student a grade on an assignment and print a confirmation."""
-    pass
+    QUERY = """
+    INSERT INTO grades(student_github, project_title, grade)
+        VALUES(:github, :title, :grade)
+    """
+
+    db.session.execute(QUERY, {'github':github, 'title': title, 'grade': grade})
+    db.session.commit()
+
+    print(f"{github}'s project {title}'s grade is {grade} and has succesfully been insterted!")
+
+#user adds new project!
+def add_project(title, description, max_grade):
+    """User can add new projects to projects table."""
+
+    QUERY = """
+    INSERT INTO projects(title, description, max_grade)
+        VALUES(:title, :description, :max_grade)
+    """
+
+    db.session.execute(QUERY, {'title':title, 'description':description, 'max_grade':max_grade})
+    db.session.commit()
+
+    #checking if user's new project has been successfully inserted
+    #title args below is the user's input
+    if get_project_by_title(title) is None:
+        print("Your project was not successfully inserted. Please try again!")
+    else:
+        print("Congratulations! Your project was successfully inserted!")
 
 
 def handle_input():
@@ -122,6 +156,16 @@ def handle_input():
         elif command == "grade":
             github, title = args
             get_grade_by_github_title(github, title)
+
+        elif command == "give_grade":
+            github, title, grade = args
+            assign_grade(github, title, grade)
+
+        elif command == "new_project":
+            title, description, max_grade = args[0], args[1:-1], args[-1]
+            str_description = " ".join(description)
+            add_project(title, str_description, max_grade)
+
 
         else:
             if command != "quit":
